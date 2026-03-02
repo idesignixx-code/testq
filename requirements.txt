@@ -1,0 +1,16 @@
+# Flask Core
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# WebSocket Support
+Flask-SocketIO==5.3.6
+python-socketio==5.11.0
+
+# Async Worker (Required for SocketIO in production)
+eventlet==0.33.3
+
+# Production WSGI Server (Recommended for Render)
+gunicorn==21.2.0
+
+# Utilities (optional but helpful)
+python-dotenv==1.0.0
