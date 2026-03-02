@@ -1,9 +1,9 @@
 """
 نظام التراويح الذكي - نسخة متقدمة جداً
 Advanced Quran System with Continuous Verse Detection
-- البحث عن الآيات الطويلة بدون توقف
-- تصفية الترجمات غير الصحيحة
-- بحث ذكي على كل الكلمات
+البحث عن الآيات الطويلة بدون توقف
+تصفية الترجمات غير الصحيحة
+بحث ذكي على كل الكلمات
 """
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
@@ -13,40 +13,41 @@ import time
 from difflib import SequenceMatcher
 from functools import lru_cache
 import re
-import socket
 from collections import defaultdict
 
-def find_free_port(start_port=5000, max_port=5100):
-    for port in range(start_port, max_port):
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind(('0.0.0.0', port))
-            sock.close()
-            return port
-        except OSError:
-            continue
-    return 5000
+# ==============================
+# Render/Production Configuration
+# ==============================
+PORT = int(os.environ.get("PORT", 5000))  # Render provides PORT env var
 
-PORT = find_free_port(5000, 5100)
+# Get absolute path to project root (where app.py is located)
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
-app = Flask(__name__, template_folder=template_dir)
-app.config['SECRET_KEY'] = 'quran-continuous-detection'
-socketio = SocketIO(app, cors_allowed_origins="*", ping_interval=25, ping_timeout=60)
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'))
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'quran-continuous-detection')
+
+# SocketIO with production settings
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*", 
+    ping_interval=25, 
+    ping_timeout=60,
+    async_mode='eventlet'
+)
 
 print(f"\n[SETUP] Loading Quran data with continuous detection...")
 
-# ===============================
+# ==============================
 # Load Quran Data
-# ===============================
-quran_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'quran.json'))
+# ==============================
+quran_path = os.path.join(BASE_DIR, 'data', 'quran.json')
 
 if os.path.exists(quran_path):
     with open(quran_path, "r", encoding="utf-8") as f:
         quran_raw = json.load(f)
-    print(f"[SUCCESS] Loaded quran.json")
+    print(f"[SUCCESS] Loaded quran.json from {quran_path}")
 else:
-    print(f"[WARNING] quran.json not found")
+    print(f"[ERROR] quran.json not found at {quran_path}")
     quran_raw = {}
 
 verses_list = []
@@ -54,6 +55,7 @@ surah_verses = defaultdict(list)
 phrase_index = {}
 word_index = defaultdict(list)
 
+@lru_cache(maxsize=10000)
 def normalize(text):
     """تطبيع ذكي"""
     if not text:
@@ -62,18 +64,19 @@ def normalize(text):
     text = re.sub(r'[^\w\s]', '', text)
     return text.strip().lower()
 
-normalize = lru_cache(maxsize=10000)(normalize)
-
-# Build indexes
+# ==============================
+# Build Indexes
+# ==============================
 print("[INDEX] Building advanced indexes...")
+
 for surah_num, surah in quran_raw.items():
     for idx, ayah in enumerate(surah.get("ayahs", [])):
         norm = normalize(ayah["ar"])
         verse_obj = {
             "ar": ayah["ar"],
-            "en": ayah.get("en", ""),
-            "fr": ayah.get("fr", ""),
-            "nl": ayah.get("nl", ""),
+            "en": ayah.get("en", " "),
+            "fr": ayah.get("fr", " "),
+            "nl": ayah.get("nl", " "),
             "surah": str(surah_num),
             "ayah": idx + 1,
             "normalized": norm,
@@ -83,7 +86,7 @@ for surah_num, surah in quran_raw.items():
         verses_list.append(verse_obj)
         surah_verses[str(surah_num)].append(verse_obj)
         
-        # فهرس العبارات
+        # فهرس العبارات (3 كلمات)
         words = norm.split()
         for i in range(len(words) - 2):
             phrase = " ".join(words[i:i+3])
@@ -99,9 +102,9 @@ for surah_num, surah in quran_raw.items():
 print(f"[DATA] Loaded {len(verses_list)} verses")
 print(f"[INDEX] Built phrase and word indexes\n")
 
-# ===============================
+# ==============================
 # Smart Search Engine
-# ===============================
+# ==============================
 @lru_cache(maxsize=5000)
 def similarity_score(a, b):
     """حساب التشابه"""
@@ -110,133 +113,92 @@ def similarity_score(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 def search_continuous_verse(text, surah_num=None):
-    """
-    بحث مستمر عن الآيات الطويلة بدون توقف
-    يعمل مع:
-    - كلمات متفرقة من الآية
-    - جمل طويلة بدون توقف
-    - أجزاء من الآية
-    """
+    """بحث مستمر عن الآيات الطويلة بدون توقف"""
     text_norm = normalize(text)
     if not text_norm or len(text_norm) < 4:
         return None, 0, False
     
     text_words = text_norm.split()
-    
-    # ==============================
-    # المرحلة 1: البحث في السورة الحالية (إن وجدت)
-    # ==============================
+
+    # المرحلة 1: البحث في السورة الحالية
     if surah_num:
         verses_in_surah = surah_verses.get(str(surah_num), [])
         
-        # مطابقة دقيقة
         for verse in verses_in_surah:
             if text_norm == verse["normalized"]:
                 return verse, 1.0, False
         
-        # مطابقة جملة
         for verse in verses_in_surah:
             if text_norm in verse["normalized"]:
                 return verse, 0.95, False
         
-        # بحث الكلمات المتتالية
-        verse_words_set = set(verse["words"])
         for verse in verses_in_surah:
-            # عد الكلمات المتطابقة
             matching = sum(1 for w in text_words if w in verse["words"])
-            
-            if matching >= 3:  # على الأقل 3 كلمات
+            if matching >= 3:
                 score = matching / max(len(text_words), len(verse["words"]))
                 if score > 0.65:
                     return verse, score, False
-    
-    # ==============================
-    # المرحلة 2: البحث في كل السور
-    # ==============================
+
+    # المرحلة 2: البحث في كل السور عبر العبارات
     best_match = None
     best_score = 0
     found_in_different_surah = False
-    
-    # البحث عن العبارات
+
     for phrase, verses in phrase_index.items():
         phrase_words = phrase.split()
         matching = sum(1 for w in text_words if w in phrase_words)
-        
         if matching >= 2:
             score = matching / max(len(text_words), len(phrase_words))
             if score > best_score:
                 best_score = score
                 best_match = verses[0] if verses else None
                 found_in_different_surah = True
-    
+
     if best_score > 0.65:
         return best_match, best_score, found_in_different_surah
-    
-    # ==============================
-    # المرحلة 3: البحث بناءً على الكلمات الرئيسية
-    # ==============================
+
+    # المرحلة 3: البحث بالكلمات الرئيسية
     if text_words:
-        # خذ أطول كلمة (غالباً الأهم)
         main_word = max(text_words, key=len) if text_words else None
-        
         if main_word and main_word in word_index:
             candidates = word_index[main_word]
-            
-            # ابحث عن أفضل مطابقة
             for verse in candidates:
                 matching = sum(1 for w in text_words if w in verse["words"])
-                
                 if matching >= 2:
                     score = matching / max(len(text_words), len(verse["words"]))
-                    
                     if score > best_score:
                         best_score = score
                         best_match = verse
                         found_in_different_surah = verse["surah"] != str(surah_num) if surah_num else True
-    
+
     if best_score > 0.55:
         return best_match, best_score, found_in_different_surah
-    
-    # ==============================
+
     # المرحلة 4: مطابقة التشابه
-    # ==============================
     text_len = len(text_norm)
     tolerance = max(int(text_len * 0.35), 5)
-    
+
     for verse in verses_list:
         if abs(verse["length"] - text_len) <= tolerance:
             score = similarity_score(text_norm, verse["normalized"])
-            
-            if score > 0.75:  # عتبة عالية
+            if score > 0.75:
                 return verse, score, verse["surah"] != str(surah_num) if surah_num else True
-    
+
     return None, 0, False
 
 def is_valid_result(verse, confidence, text):
-    """
-    تحقق من أن النتيجة صحيحة حقاً
-    لا تعيد ترجمة للكلمات الغير معروفة
-    """
-    # إذا كانت الثقة منخفضة جداً، لا تعيد شيء
+    """تحقق من أن النتيجة صحيحة"""
     if confidence < 0.55:
         return False
-    
-    # تحقق من أن النص يحتوي على كلمات كافية من الآية
     text_norm = normalize(text)
     text_words = set(text_norm.split())
     verse_words = set(verse["words"])
-    
-    # يجب أن تكون هناك كلمات مشتركة كافية
     common_words = len(text_words & verse_words)
-    
-    if common_words < 2:
-        return False
-    
-    return True
+    return common_words >= 2
 
-# ===============================
+# ==============================
 # Routes
-# ===============================
+# ==============================
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -253,12 +215,9 @@ def translation():
 
 @app.route("/api/surah/<surah_num>")
 def get_surah(surah_num):
-    """احصل على جميع آيات السورة"""
     verses_in_surah = surah_verses.get(str(surah_num), [])
-    
     if not verses_in_surah:
         return jsonify({"status": "error"}), 404
-    
     return jsonify({
         "surah": surah_num,
         "verses": [
@@ -288,9 +247,9 @@ def health():
         "port": PORT
     })
 
-# ===============================
+# ==============================
 # WebSocket Events
-# ===============================
+# ==============================
 @socketio.on('connect')
 def handle_connect():
     print("[SOCKET] Client connected")
@@ -301,28 +260,16 @@ def handle_stream_surah(data):
     """بث آيات السورة"""
     surah_num = data.get('surah')
     lang = data.get('lang', 'ar')
-    
     if not surah_num:
         return
-    
     verses_in_surah = surah_verses.get(str(surah_num), [])
-    
     if not verses_in_surah:
         emit('error', {'message': 'Surah not found'})
         return
     
     verses_data = []
     for verse in verses_in_surah:
-        trans = ''
-        if lang == 'ar':
-            trans = verse['ar']
-        elif lang == 'en':
-            trans = verse['en']
-        elif lang == 'fr':
-            trans = verse['fr']
-        elif lang == 'nl':
-            trans = verse['nl']
-        
+        trans = verse.get(lang, verse['ar'])
         verses_data.append({
             "ayah": verse["ayah"],
             "ar": verse["ar"],
@@ -344,33 +291,21 @@ def handle_recognize(data):
     
     if not text or len(text) < 4:
         return
-    
-    # البحث المستمر
+
     verse, confidence, surah_changed = search_continuous_verse(text, current_surah)
-    
-    # تحقق من صحة النتيجة
+
     if not is_valid_result(verse, confidence, text):
-        # لا تعيد ترجمة خاطئة!
         emit('no_match', {
             'reason': 'confidence_too_low',
             'response_time': round((time.time() - start) * 1000, 1)
         })
         return
-    
+
     elapsed = (time.time() - start) * 1000
-    
+
     if verse:
-        trans = ''
-        if lang == 'ar':
-            trans = verse['ar']
-        elif lang == 'en':
-            trans = verse['en']
-        elif lang == 'fr':
-            trans = verse['fr']
-        elif lang == 'nl':
-            trans = verse['nl']
+        trans = verse.get(lang, verse['ar'])
         
-        # إرسال الآية
         emit('current_verse_update', {
             'verse': {
                 'ayah': verse['ayah'],
@@ -390,16 +325,7 @@ def handle_recognize(data):
         for i in range(int(verse['ayah']) + 1, min(int(verse['ayah']) + 4, len(verses_in_surah) + 1)):
             for v in verses_in_surah:
                 if v['ayah'] == i:
-                    next_trans = ''
-                    if lang == 'ar':
-                        next_trans = v['ar']
-                    elif lang == 'en':
-                        next_trans = v['en']
-                    elif lang == 'fr':
-                        next_trans = v['fr']
-                    elif lang == 'nl':
-                        next_trans = v['nl']
-                    
+                    next_trans = v.get(lang, v['ar'])
                     next_verses_data.append({
                         'ayah': v['ayah'],
                         'ar': v['ar'],
@@ -414,21 +340,20 @@ def handle_recognize(data):
                 'current_ayah': verse['ayah']
             }, broadcast=True)
 
-# ===============================
-# Main
-# ===============================
+# ==============================
+# Gunicorn/Render Compatibility (CRITICAL)
+# ==============================
+# This variable is required for Render to find your app
+application = app
+
+# ==============================
+# Local Development Only
+# ==============================
 if __name__ == "__main__":
     print("="*70)
     print("🌙 نظام التراويح الذكي - CONTINUOUS DETECTION 🌙")
     print("="*70)
-    print("✅ Continuous Verse Detection")
-    print("✅ Long Verse Support")
-    print("✅ Translation Filtering")
-    print("✅ No False Positives")
-    print("✅ Advanced Search")
-    print("="*70)
-    print(f"\n🌐 Open in browser: http://localhost:{PORT}")
-    print(f"📱 Local network: http://192.168.129.3:{PORT}\n")
+    print(f"\n🌐 Open in browser: http://localhost:{PORT}\n")
     
     socketio.run(
         app,
