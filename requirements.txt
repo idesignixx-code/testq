@@ -4,4 +4,3 @@ python-socketio==5.11.0
 eventlet==0.33.3
 gunicorn==21.2.0
 Werkzeug==3.0.1
-python-dotenv==1.0.0
