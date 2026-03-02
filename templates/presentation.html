@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌙 وضع العرض - Presentation Mode</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --dark-bg: #1a1a1a;
+            --light-bg: #ffffff;
+            --dark-text: #ffffff;
+            --light-text: #333333;
+        }
+
+        body {
+            font-family: 'Arabic Typesetting', 'Simplified Arabic', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #2d2d2d 100%);
+            color: var(--dark-text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            transition: all 0.3s;
+        }
+
+        body.light-mode {
+            background: linear-gradient(135deg, var(--light-bg) 0%, #f0f0f0 100%);
+            color: var(--light-text);
+        }
+
+        .presentation-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .control-btn.recording {
+            background: #ff6b6b;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3); }
+            50% { box-shadow: 0 5px 25px rgba(255, 107, 107, 0.6); }
+        }
+
+        .lang-selector {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .lang-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .lang-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .lang-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        body.light-mode .lang-btn {
+            color: var(--light-text);
+            border-color: var(--light-text);
+        }
+
+        body.light-mode .lang-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .verse-section {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 40px;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .verse-arabic {
+            font-size: 72px;
+            font-weight: bold;
+            line-height: 2.2;
+            margin-bottom: 50px;
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arabic Typesetting', serif;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        body.light-mode .verse-arabic {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .translation-section {
+            text-align: center;
+            font-size: 36px;
+            line-height: 1.9;
+            margin-bottom: 40px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.85;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        body.light-mode .translation-section {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .verse-reference {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            font-size: 18px;
+            opacity: 0.7;
+            font-weight: bold;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.8;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            animation: statusPulse 2s infinite;
+        }
+
+        .status-dot.recording {
+            background: #ff6b6b;
+            animation: pulse-dot 1s infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .recognized-text {
+            position: fixed;
+            bottom: 80px;
+            left: 30px;
+            font-size: 12px;
+            opacity: 0.6;
+            max-width: 350px;
+            line-height: 1.4;
+        }
+
+        .confidence-bar {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 4px;
+            width: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            opacity: 0.5;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .verse-arabic {
+                font-size: 60px;
+            }
+
+            .translation-section {
+                font-size: 32px;
+            }
+
+            .presentation-container {
+                padding: 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .verse-arabic {
+                font-size: 48px;
+                margin-bottom: 30px;
+            }
+
+            .translation-section {
+                font-size: 24px;
+                min-height: 100px;
+                padding: 15px;
+            }
+
+            .presentation-container {
+                padding: 20px;
+            }
+
+            .controls {
+                gap: 10px;
+            }
+
+            .control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .verse-arabic {
+                font-size: 36px;
+                line-height: 2;
+                margin-bottom: 20px;
+                min-height: 120px;
+            }
+
+            .translation-section {
+                font-size: 18px;
+                line-height: 1.6;
+                min-height: 80px;
+                padding: 10px;
+            }
+
+            .presentation-container {
+                padding: 15px;
+            }
+
+            .verse-reference {
+                font-size: 14px;
+            }
+
+            .status-bar {
+                font-size: 12px;
+                gap: 10px;
+            }
+
+            .recognized-text {
+                font-size: 11px;
+                max-width: 280px;
+            }
+
+            .lang-selector {
+                top: 15px;
+                left: 15px;
+                gap: 5px;
+            }
+
+            .lang-btn {
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+
+            .control-btn {
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <!-- Language Selector -->
+    <div class="lang-selector">
+        <button class="lang-btn active" onclick="setLanguage('ar')">العربية</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+        <button class="lang-btn" onclick="setLanguage('fr')">Français</button>
+        <button class="lang-btn" onclick="setLanguage('nl')">Nederlands</button>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="control-btn" id="micBtn" title="تشغيل/إيقاف الميكروفون">🎤</button>
+        <button class="control-btn" onclick="toggleMode()" title="تبديل الوضع">🌙</button>
+        <button class="control-btn" onclick="goHome()" title="الصفحة الرئيسية">🏠</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="presentation-container">
+        <div class="verse-section">
+            <div class="verse-arabic" id="verseArabic">🔄 جاري الانتظار...</div>
+            <div class="translation-section" id="translation"></div>
+        </div>
+    </div>
+
+    <!-- Verse Reference -->
+    <div class="verse-reference" id="verseRef">-</div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">جاري الاتصال...</span>
+        </div>
+    </div>
+
+    <!-- Recognized Text -->
+    <div class="recognized-text" id="recognizedText">-</div>
+
+    <!-- Confidence Bar -->
+    <div class="confidence-bar">
+        <div class="confidence-fill" id="confidenceFill"></div>
+    </div>
+
+    <script>
+        let currentLang = "{{ lang }}" || "ar";
+        let currentSurah = null;
+        const socket = io();
+        let isListening = false;
+        let recognition = null;
+
+        // Initialize Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ar-SA';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('micBtn').classList.add('recording');
+                document.getElementById('statusDot').classList.add('recording');
+                document.getElementById('statusText').textContent = 'جاري الاستماع 🎤';
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // عرض النص المؤقت
+                if (interimTranscript) {
+                    document.getElementById('recognizedText').textContent = interimTranscript.substring(0, 60);
+                }
+
+                // إرسال النص النهائي
+                if (finalTranscript.trim()) {
+                    document.getElementById('recognizedText').textContent = finalTranscript.substring(0, 60);
+                    
+                    socket.emit('recognize_verse', { 
+                        text: finalTranscript.trim(),
+                        surah: currentSurah,
+                        lang: currentLang
+                    });
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Recognition error:', event.error);
+                document.getElementById('statusText').textContent = '❌ خطأ في الميكروفون';
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('micBtn').classList.remove('recording');
+                document.getElementById('statusDot').classList.remove('recording');
+                
+                // إعادة التشغيل التلقائي
+                setTimeout(() => {
+                    if (recognition) {
+                        recognition.start();
+                    }
+                }, 1000);
+            };
+        }
+
+        // Mic Button
+        document.getElementById('micBtn').addEventListener('click', toggleMicrophone);
+
+        function toggleMicrophone() {
+            if (recognition) {
+                if (isListening) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            }
+        }
+
+        // Socket Events
+        socket.on('connect', () => {
+            document.getElementById('statusDot').style.background = '#4ecdc4';
+            document.getElementById('statusText').textContent = '✅ متصل';
+        });
+
+        socket.on('current_verse_update', (data) => {
+            const v = data.verse;
+            currentSurah = data.surah;
+            
+            // عرض الآية
+            document.getElementById('verseArabic').textContent = v.ar;
+            
+            // عرض الترجمة
+            document.getElementById('translation').textContent = v.translation;
+            
+            // عرض المرجع
+            document.getElementById('verseRef').textContent = `السورة ${v.ayah}:${data.surah}`;
+            
+            // عرض مؤشر الثقة
+            const confidence = data.confidence || 0.95;
+            document.getElementById('confidenceFill').style.width = (confidence * 100) + '%';
+            
+            // رسالة النجاح
+            document.getElementById('statusText').textContent = `✅ الآية ${v.ayah} (${Math.round(confidence * 100)}%)`;
+        });
+
+        socket.on('next_verses_streaming', (data) => {
+            // يمكن إضافة معالجة للآيات التالية هنا إذا أردت
+        });
+
+        socket.on('error', (data) => {
+            document.getElementById('statusText').textContent = '❌ ' + (data.message || 'خطأ');
+        });
+
+        // Functions
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (recognition) {
+                recognition.lang = lang === 'ar' ? 'ar-SA' : 
+                                  lang === 'en' ? 'en-US' :
+                                  lang === 'fr' ? 'fr-FR' : 'nl-NL';
+            }
+        }
+
+        function toggleMode() {
+            document.body.classList.toggle('light-mode');
+        }
+
+        function goHome() {
+            window.location.href = '/';
+        }
+
+        // Start listening automatically
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (recognition) {
+                    recognition.start();
+                }
+            }, 500);
+        });
+
+        // Request microphone permission
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .catch(err => {
+                console.log('Microphone permission needed');
+                document.getElementById('statusText').textContent = '⚠️ تم رفض الميكروفون';
+            });
+    </script>
+</body>
+</html>

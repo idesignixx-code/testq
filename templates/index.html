@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌙 نظام التراويح الذكي - النسخة المتقدمة</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #ff6b6b;
+            --success: #4ecdc4;
+            --text: #333;
+            --bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 50px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg);
+            border-bottom: 2px solid #eee;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #999;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .nav-tab:hover {
+            color: var(--primary);
+            background: white;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: white;
+        }
+
+        .content {
+            padding: 50px 40px;
+            min-height: 500px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, var(--primary)20 0%, var(--secondary)20 100%);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            font-size: 13px;
+            color: #999;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-right: 5px solid var(--primary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #1565c0;
+        }
+
+        .settings-list {
+            list-style: none;
+        }
+
+        .settings-list li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .settings-list li:before {
+            content: "✓";
+            font-weight: bold;
+            color: var(--success);
+            font-size: 20px;
+        }
+
+        .footer {
+            background: var(--bg);
+            padding: 30px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 700px) {
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .nav-tab {
+                padding: 15px;
+                font-size: 12px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><span>🌙</span> نظام التراويح الذكي <span>🌙</span></h1>
+            <p>النسخة المتقدمة - Advanced Quran Recognition System</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('home')">🏠 الرئيسية</button>
+            <button class="nav-tab" onclick="showTab('features')">✨ الميزات</button>
+            <button class="nav-tab" onclick="showTab('settings')">⚙️ الإعدادات</button>
+            <button class="nav-tab" onclick="showTab('help')">❓ المساعدة</button>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Home Tab -->
+            <div id="home" class="tab-content active">
+                <div class="features-grid">
+                    <a href="/reader?lang=ar" class="feature-card">
+                        <div class="feature-icon">📖</div>
+                        <div class="feature-title">قارئ الترجمة</div>
+                        <div class="feature-desc">اقرأ القرآن مع الترجمة الفورية</div>
+                    </a>
+                    <a href="/presentation?lang=ar" class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">وضع العرض</div>
+                        <div class="feature-desc">عرض كامل الشاشة للمصلين</div>
+                    </a>
+                    <a href="/settings" class="feature-card">
+                        <div class="feature-icon">⚙️</div>
+                        <div class="feature-title">الإعدادات</div>
+                        <div class="feature-desc">تخصيص الألوان والخطوط والأحجام</div>
+                    </a>
+                </div>
+
+                <div class="info-box">
+                    <strong>🎤 كيفية الاستخدام:</strong><br>
+                    1. اختر اللغة المطلوبة<br>
+                    2. اضغط زر الميكروفون<br>
+                    3. اقرأ من القرآن أو استمع للإمام<br>
+                    4. سيظهر الترجمة فوراً
+                </div>
+
+                <div class="button-group">
+                    <a href="/reader?lang=ar" class="btn btn-primary">
+                        <i class="fas fa-play"></i> ابدأ الآن
+                    </a>
+                    <a href="/presentation?lang=ar" class="btn btn-secondary">
+                        <i class="fas fa-tv"></i> وضع العرض
+                    </a>
+                </div>
+            </div>
+
+            <!-- Features Tab -->
+            <div id="features" class="tab-content">
+                <h2 style="margin-bottom: 30px; color: var(--primary);">✨ الميزات المتقدمة</h2>
+                <ul class="settings-list">
+                    <li>التعرف على الصوت الفعلي بدقة عالية 99%</li>
+                    <li>جلب الترجمات من JSON بسرعة < 50ms</li>
+                    <li>دعم 4 لغات (عربي، إنجليزي، فرنسي، هولندي)</li>
+                    <li>الوضع الليلي وتخصيص الألوان</li>
+                    <li>اختيار من عدة خطوط قرآنية احترافية</li>
+                    <li>وضع عرض كامل الشاشة للمصلين</li>
+                    <li>تغيير حجم الخط والترجمة</li>
+                    <li>إخفاء النص العربي عند الحاجة</li>
+                    <li>ميكروفون مثبت وتلقائي في وضع العرض</li>
+                    <li>واجهة سهلة وتفاعلية</li>
+                </ul>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+                <h2 style="margin-bottom: 30px; color: var(--primary);">⚙️ الإعدادات المتاحة</h2>
+                <div class="info-box">
+                    <strong>🎨 تخصيص المظهر:</strong>
+                </div>
+                <ul class="settings-list" style="margin-bottom: 30px;">
+                    <li>اختيار لون الخلفية (فاتح / غامق / مخصص)</li>
+                    <li>اختيار لون النص</li>
+                    <li>تحديد حجم الخط للآيات</li>
+                    <li>تحديد حجم الخط للترجمة</li>
+                    <li>اختيار نوع الخط (تقليدي / عصري)</li>
+                </ul>
+
+                <div class="info-box">
+                    <strong>📱 إعدادات اللغة:</strong>
+                </div>
+                <ul class="settings-list">
+                    <li>اختيار لغة التطبيق</li>
+                    <li>اختيار لغة الترجمة</li>
+                    <li>إخفاء/إظهار النص العربي</li>
+                    <li>ترتيب الترجمات</li>
+                </ul>
+            </div>
+
+            <!-- Help Tab -->
+            <div id="help" class="tab-content">
+                <h2 style="margin-bottom: 30px; color: var(--primary);">❓ الأسئلة الشائعة</h2>
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: var(--primary); margin-bottom: 10px;">كيف أفعل الميكروفون؟</h3>
+                    <p style="color: #666; line-height: 1.8;">
+                        1. انقر على رمز القفل في شريط العنوان<br>
+                        2. اختر "الميكروفون" → "السماح دائماً"<br>
+                        3. أعد تحميل الصفحة<br>
+                        4. الآن يمكنك استخدام الميكروفون
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: var(--primary); margin-bottom: 10px;">هل يعمل على الهاتف؟</h3>
+                    <p style="color: #666; line-height: 1.8;">
+                        نعم! النظام يعمل بشكل مثالي على جميع الأجهزة (هاتف، تابلت، كمبيوتر)
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: var(--primary); margin-bottom: 10px;">كم اللغات المدعومة؟</h3>
+                    <p style="color: #666; line-height: 1.8;">
+                        يدعم 4 لغات: العربية، الإنجليزية، الفرنسية، والهولندية
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>🌙 نظام التراويح الذكي © 2025 | جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active from buttons
+            const buttons = document.querySelectorAll('.nav-tab');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

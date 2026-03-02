@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ الإعدادات - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .settings-group {
+            margin-bottom: 35px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .settings-group:last-child {
+            border-bottom: none;
+        }
+
+        .group-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .setting-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            width: 150px;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        select, .select-group {
+            padding: 8px 12px;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            font-size: 13px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            text-align: right;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 35px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-reset {
+            background: #ff6b6b;
+            color: white;
+            min-width: 150px;
+        }
+
+        .btn-reset:hover {
+            background: #ff5252;
+        }
+
+        .btn-back {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            min-width: 150px;
+        }
+
+        .btn-back:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .preview {
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-text {
+            font-size: 24px;
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+
+        .preview-trans {
+            font-size: 18px;
+            color: #999;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--primary);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            right: 2px;
+            transition: right 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            right: 26px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .setting-control {
+                width: 100%;
+            }
+
+            select {
+                width: 100%;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚙️ الإعدادات</h1>
+            <p>تخصيص تطبيق التراويح الذكي حسب احتياجاتك</p>
+        </div>
+
+        <!-- Display Settings -->
+        <div class="settings-group">
+            <div class="group-title">🎨 إعدادات المظهر</div>
+            
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">لون الخلفية</div>
+                    <div class="setting-desc">اختر لون خلفية الشاشة</div>
+                </div>
+                <input type="color" id="bgColor" value="#1a1a1a">
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">لون النص</div>
+                    <div class="setting-desc">اختر لون النص والترجمة</div>
+                </div>
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">حجم خط الآيات</div>
+                    <div class="setting-desc">تكبير أو تصغير النص العربي</div>
+                </div>
+                <div class="setting-control">
+                    <span id="verseSize">72px</span>
+                    <input type="range" id="verseFont" min="40" max="120" value="72">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">حجم خط الترجمة</div>
+                    <div class="setting-desc">تكبير أو تصغير الترجمة</div>
+                </div>
+                <div class="setting-control">
+                    <span id="transSize">36px</span>
+                    <input type="range" id="transFont" min="20" max="60" value="36">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">الوضع الليلي</div>
+                    <div class="setting-desc">تشغيل الوضع الليلي افتراضياً</div>
+                </div>
+                <div class="toggle-switch active" id="darkMode" onclick="toggleDark()"></div>
+            </div>
+        </div>
+
+        <!-- Font Settings -->
+        <div class="settings-group">
+            <div class="group-title">📝 إعدادات الخطوط</div>
+            
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">خط الآيات</div>
+                    <div class="setting-desc">اختر خط قرآني احترافي</div>
+                </div>
+                <select id="verseFont" style="min-width: 200px;">
+                    <option value="traditional">التقليدي (Arabic Typesetting)</option>
+                    <option value="modern">العصري (Segoe UI)</option>
+                    <option value="quranic">القرآني (Simplified Arabic)</option>
+                    <option value="elegant">الأنيق (Traditional Arabic)</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">خط الترجمة</div>
+                    <div class="setting-desc">اختر خط الترجمة الإنجليزية</div>
+                </div>
+                <select id="transFont" style="min-width: 200px;">
+                    <option value="sans">بدون زخرفة (Sans Serif)</option>
+                    <option value="serif">بزخرفة (Serif)</option>
+                    <option value="mono">موحد العرض (Monospace)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Language Settings -->
+        <div class="settings-group">
+            <div class="group-title">🌐 إعدادات اللغة</div>
+            
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">لغة التطبيق</div>
+                    <div class="setting-desc">اختر لغة واجهة المستخدم</div>
+                </div>
+                <select style="min-width: 150px;">
+                    <option>العربية</option>
+                    <option>English</option>
+                    <option>Français</option>
+                    <option>Nederlands</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">لغة الترجمة الافتراضية</div>
+                    <div class="setting-desc">اختر لغة الترجمة التلقائية</div>
+                </div>
+                <select style="min-width: 150px;">
+                    <option>العربية</option>
+                    <option>English</option>
+                    <option>Français</option>
+                    <option>Nederlands</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">إخفاء النص العربي</div>
+                    <div class="setting-desc">عرض الترجمة فقط</div>
+                </div>
+                <div class="toggle-switch" id="hideArabic" onclick="toggleHide()"></div>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview">
+            <div class="preview-text" id="previewVerse">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+            <div class="preview-trans" id="previewTrans">In the name of Allah, the Most Gracious, the Most Merciful</div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <button class="btn-save" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+            <button class="btn-reset" onclick="resetSettings()">🔄 إعادة تعيين</button>
+            <button class="btn-back" onclick="goHome()">🏠 العودة</button>
+        </div>
+    </div>
+
+    <script>
+        // Load saved settings
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('taraweeh_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('bgColor').value = settings.bgColor || '#1a1a1a';
+                document.getElementById('textColor').value = settings.textColor || '#ffffff';
+                document.getElementById('verseFont').value = settings.verseFontSize || '72';
+                document.getElementById('transFont').value = settings.transFontSize || '36';
+            }
+            updatePreview();
+        });
+
+        // Update preview
+        function updatePreview() {
+            const verse = document.getElementById('previewVerse');
+            const trans = document.getElementById('previewTrans');
+            
+            verse.style.fontSize = document.getElementById('verseFont').value + 'px';
+            trans.style.fontSize = document.getElementById('transFont').value + 'px';
+            
+            document.body.style.background = document.getElementById('bgColor').value;
+            verse.style.color = document.getElementById('textColor').value;
+            trans.style.color = document.getElementById('textColor').value;
+        }
+
+        // Event listeners
+        document.getElementById('bgColor').addEventListener('change', updatePreview);
+        document.getElementById('textColor').addEventListener('change', updatePreview);
+        document.getElementById('verseFont').addEventListener('input', (e) => {
+            document.getElementById('verseSize').textContent = e.target.value + 'px';
+            updatePreview();
+        });
+        document.getElementById('transFont').addEventListener('input', (e) => {
+            document.getElementById('transSize').textContent = e.target.value + 'px';
+            updatePreview();
+        });
+
+        function toggleDark() {
+            document.getElementById('darkMode').classList.toggle('active');
+        }
+
+        function toggleHide() {
+            document.getElementById('hideArabic').classList.toggle('active');
+        }
+
+        function saveSettings() {
+            const settings = {
+                bgColor: document.getElementById('bgColor').value,
+                textColor: document.getElementById('textColor').value,
+                verseFontSize: document.getElementById('verseFont').value,
+                transFontSize: document.getElementById('transFont').value
+            };
+            localStorage.setItem('taraweeh_settings', JSON.stringify(settings));
+            alert('✅ تم حفظ الإعدادات بنجاح!');
+        }
+
+        function resetSettings() {
+            if (confirm('هل تريد إعادة تعيين جميع الإعدادات؟')) {
+                localStorage.removeItem('taraweeh_settings');
+                location.reload();
+            }
+        }
+
+        function goHome() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

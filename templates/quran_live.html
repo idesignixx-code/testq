@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌙 نظام التراويح الذكي - Quran Recognition</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+            padding: 50px;
+            width: 100%;
+            max-width: 950px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 40px;
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .lang-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .lang-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .lang-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 35px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .status-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .mic-section {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-radius: 20px;
+            border: 3px dashed #667eea;
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        .mic-button:hover {
+            transform: scale(1.05);
+        }
+
+        .mic-button:active {
+            transform: scale(0.95);
+        }
+
+        .mic-button.recording {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            animation: pulse-mic 1.5s infinite;
+            box-shadow: 0 15px 35px rgba(255, 107, 107, 0.5);
+        }
+
+        @keyframes pulse-mic {
+            0%, 100% {
+                box-shadow: 0 15px 35px rgba(255, 107, 107, 0.4);
+            }
+            50% {
+                box-shadow: 0 15px 50px rgba(255, 107, 107, 0.7);
+            }
+        }
+
+        .mic-label {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+
+        .waveform-container {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+
+        .wave {
+            width: 5px;
+            background: #667eea;
+            border-radius: 3px;
+            animation: wave-animation 0.8s ease-in-out infinite;
+        }
+
+        .wave:nth-child(1) { animation-delay: 0s; height: 10px; }
+        .wave:nth-child(2) { animation-delay: 0.1s; height: 20px; }
+        .wave:nth-child(3) { animation-delay: 0.2s; height: 30px; }
+        .wave:nth-child(4) { animation-delay: 0.3s; height: 25px; }
+        .wave:nth-child(5) { animation-delay: 0.4s; height: 15px; }
+
+        @keyframes wave-animation {
+            0%, 100% { height: 10px; }
+            50% { height: 40px; }
+        }
+
+        .recognized-text {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-top: 10px;
+            min-height: 20px;
+            font-style: italic;
+        }
+
+        .verse-display {
+            background: #fafafa;
+            border-left: 6px solid #667eea;
+            padding: 40px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .verse-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .verse-arabic {
+            font-size: 45px;
+            font-weight: bold;
+            color: #333;
+            line-height: 2.2;
+            margin-bottom: 30px;
+            min-height: 100px;
+        }
+
+        .verse-translations {
+            border-top: 2px solid #ddd;
+            padding-top: 20px;
+        }
+
+        .translation {
+            margin-bottom: 18px;
+        }
+
+        .trans-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .trans-text {
+            font-size: 17px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-top: 5px solid #667eea;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-clear {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #45b7aa;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(78, 205, 196, 0.3);
+        }
+
+        .debug-panel {
+            background: #f5f5f5;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            max-height: 140px;
+            overflow-y: auto;
+            border-left: 5px solid #667eea;
+        }
+
+        .debug-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .debug-line {
+            margin-bottom: 5px;
+            line-height: 1.6;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .mic-button {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+            }
+
+            .verse-arabic {
+                font-size: 36px;
+            }
+
+            .trans-text {
+                font-size: 15px;
+            }
+
+            button {
+                padding: 12px 30px;
+                font-size: 13px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span>🌙</span>
+                نظام التراويح الذكي
+                <span>🌙</span>
+            </h1>
+            <p class="subtitle">اختر اللغة ثم اضغط الميكروفون لبدء الاستماع</p>
+            <div class="lang-selector">
+                <button class="lang-btn active" onclick="setLanguage('ar')">العربية</button>
+                <button class="lang-btn" onclick="setLanguage('en')">English</button>
+                <button class="lang-btn" onclick="setLanguage('fr')">Français</button>
+                <button class="lang-btn" onclick="setLanguage('nl')">Nederlands</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-label">الاتصال</div>
+                <div class="status-value" id="connection">⏳</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">السورة</div>
+                <div class="status-value" id="surah">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">الآية</div>
+                <div class="status-value" id="ayah">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">السرعة</div>
+                <div class="status-value" id="speed">0ms</div>
+            </div>
+        </div>
+
+        <!-- Microphone Section -->
+        <div class="mic-section">
+            <div class="mic-label" id="micLabel">اضغط الميكروفون وابدأ القراءة</div>
+            <button class="mic-button" id="micBtn" title="اضغط لبدء">🎤</button>
+            <div class="waveform-container" id="waveform" style="display:none;">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+            <div class="recognized-text" id="recognizedText"></div>
+        </div>
+
+        <!-- Verse Display -->
+        <div class="verse-display">
+            <div class="verse-label">الآية المتعرف عليها</div>
+            <div class="verse-arabic" id="verseArabic">جاري الانتظار...</div>
+            <div class="verse-translations" id="translations" style="display:none;">
+                <div class="translation" id="englishTranslation">
+                    <div class="trans-label">English</div>
+                    <div class="trans-text" id="trans-en"></div>
+                </div>
+                <div class="translation" id="frenchTranslation">
+                    <div class="trans-label">Français</div>
+                    <div class="trans-text" id="trans-fr"></div>
+                </div>
+                <div class="translation" id="dutchTranslation">
+                    <div class="trans-label">Nederlands</div>
+                    <div class="trans-text" id="trans-nl"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">الثقة</div>
+                <div class="stat-value" id="confidence">0%</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">وقت الاستجابة</div>
+                <div class="stat-value" id="responseTime">0ms</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">الحالة</div>
+                <div class="stat-value" id="status">-</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn-clear" onclick="clearVerse()">↻ حذف</button>
+        </div>
+
+        <!-- Debug -->
+        <div class="debug-panel">
+            <div class="debug-label">معلومات النظام</div>
+            <div id="debug">
+                <div class="debug-line">⏳ جاري الاتصال...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLang = "{{ lang }}" || "ar";
+        const socket = io();
+        let isListening = false;
+        let recognition = null;
+        let debugLines = [];
+
+        // Initialize Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ar-SA';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('micBtn').classList.add('recording');
+                document.getElementById('waveform').style.display = 'flex';
+                document.getElementById('micLabel').textContent = 'جاري الاستماع...';
+                addDebug('🎤 بدأ الاستماع');
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (interimTranscript) {
+                    document.getElementById('recognizedText').textContent = interimTranscript;
+                }
+
+                if (finalTranscript) {
+                    const text = finalTranscript.trim();
+                    addDebug(`🗣️ تم: ${text.substring(0, 50)}...`);
+                    
+                    // Send to server for matching
+                    socket.emit('recognize_verse', { text: text });
+                }
+            };
+
+            recognition.onerror = (event) => {
+                addDebug(`❌ خطأ: ${event.error}`);
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('micBtn').classList.remove('recording');
+                document.getElementById('waveform').style.display = 'none';
+                document.getElementById('micLabel').textContent = 'اضغط الميكروفون وابدأ القراءة';
+            };
+        } else {
+            addDebug('❌ متصفحك لا يدعم Web Speech API');
+        }
+
+        // Mic Button
+        document.getElementById('micBtn').addEventListener('mousedown', startListening);
+        document.getElementById('micBtn').addEventListener('mouseup', stopListening);
+        document.getElementById('micBtn').addEventListener('touchstart', startListening, false);
+        document.getElementById('micBtn').addEventListener('touchend', stopListening, false);
+
+        function startListening() {
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        }
+
+        function stopListening() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+        }
+
+        // Socket Events
+        socket.on('connect', () => {
+            document.getElementById('connection').textContent = '✅';
+            addDebug('✅ متصل بالخادم');
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection').textContent = '❌';
+            addDebug('❌ انقطع الاتصال');
+        });
+
+        socket.on('verse_found', (data) => {
+            const v = data.verse;
+            document.getElementById('verseArabic').textContent = v.ar;
+            
+            // Show translations based on language
+            document.getElementById('trans-en').textContent = v.en || '-';
+            document.getElementById('trans-fr').textContent = v.fr || '-';
+            document.getElementById('trans-nl').textContent = v.nl || '-';
+            document.getElementById('translations').style.display = 'block';
+            
+            document.getElementById('surah').textContent = `السورة ${v.surah}`;
+            document.getElementById('ayah').textContent = `الآية ${v.ayah}`;
+            document.getElementById('confidence').textContent = Math.round((data.confidence || 0) * 100) + '%';
+            document.getElementById('responseTime').textContent = data.response_time + 'ms';
+            document.getElementById('status').textContent = '✅';
+            
+            addDebug(`✅ وجدت: ${v.ar.substring(0, 40)}... (${data.response_time}ms)`);
+        });
+
+        socket.on('no_verse_found', (data) => {
+            document.getElementById('status').textContent = '❌';
+            addDebug(`❌ لم يتم العثور على آية (${data.response_time}ms)`);
+        });
+
+        // Functions
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (recognition) {
+                recognition.lang = lang === 'ar' ? 'ar-SA' : 
+                                  lang === 'en' ? 'en-US' :
+                                  lang === 'fr' ? 'fr-FR' : 'nl-NL';
+            }
+            addDebug(`🌐 اللغة: ${lang}`);
+        }
+
+        function clearVerse() {
+            document.getElementById('verseArabic').textContent = 'جاري الانتظار...';
+            document.getElementById('translations').style.display = 'none';
+            document.getElementById('recognizedText').textContent = '';
+            document.getElementById('surah').textContent = '-';
+            document.getElementById('ayah').textContent = '-';
+            document.getElementById('confidence').textContent = '0%';
+            document.getElementById('responseTime').textContent = '0ms';
+            document.getElementById('status').textContent = '-';
+            addDebug('↻ تم الحذف');
+        }
+
+        function addDebug(text) {
+            debugLines.unshift(text);
+            if (debugLines.length > 5) debugLines.pop();
+            document.getElementById('debug').innerHTML = debugLines
+                .map(line => `<div class="debug-line">${line}</div>`)
+                .join('');
+        }
+
+        // Initial
+        addDebug('🌙 نظام التراويح الذكي جاهز');
+    </script>
+</body>
+</html>

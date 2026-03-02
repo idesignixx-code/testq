@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌙 Quran Live</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #fdf6e3;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            padding: 20px;
+        }
+
+        #arabic {
+            font-size: 80px;
+            font-weight: bold;
+            margin-top: 100px;
+            animation: fadeIn 0.5s;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        body.dark-mode #arabic {
+            color: #fff;
+        }
+
+        #translation {
+            font-size: 50px;
+            color: gray;
+            margin-top: 40px;
+            animation: fadeIn 0.5s;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+        }
+
+        body.dark-mode #translation {
+            color: #aaa;
+        }
+
+        #debug {
+            font-size: 20px;
+            margin-top: 40px;
+            color: red;
+            min-height: 30px;
+            animation: fadeIn 0.5s;
+        }
+
+        body.dark-mode #debug {
+            color: #ff6b6b;
+        }
+
+        #reference {
+            font-size: 14px;
+            color: #666;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+
+        body.dark-mode #reference {
+            color: #999;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #arabic {
+                font-size: 60px;
+                margin-top: 60px;
+            }
+
+            #translation {
+                font-size: 36px;
+                margin-top: 30px;
+            }
+
+            #debug {
+                font-size: 16px;
+                margin-top: 30px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #arabic {
+                font-size: 45px;
+                margin-top: 40px;
+            }
+
+            #translation {
+                font-size: 28px;
+                margin-top: 20px;
+            }
+
+            #debug {
+                font-size: 14px;
+                margin-top: 20px;
+            }
+
+            .controls {
+                top: 10px;
+                right: 10px;
+            }
+
+            .btn {
+                padding: 6px 12px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="btn" onclick="toggleDark()">🌙 Dark</button>
+        <button class="btn" onclick="location.href='/'">🏠 Home</button>
+    </div>
+
+    <div class="container">
+        <div id="arabic">--</div>
+        <div id="translation">--</div>
+        <div id="reference">--</div>
+        <div id="debug"></div>
+    </div>
+
+    <script>
+        const lang = "{{ lang }}" || "en";
+        const socket = io();
+
+        console.log('Language:', lang);
+
+        // Socket Events
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        // Handle current verse update
+        socket.on('current_verse_update', function(data) {
+            const v = data.verse;
+            
+            // Display Arabic
+            document.getElementById('arabic').innerText = v.ar || '--';
+            
+            // Display Translation based on language
+            let trans = '--';
+            if (lang === 'ar') {
+                trans = v.ar || '--';
+            } else if (lang === 'en') {
+                trans = v.en || '--';
+            } else if (lang === 'fr') {
+                trans = v.fr || v.en || '--';
+            } else if (lang === 'nl') {
+                trans = v.nl || v.en || '--';
+            } else {
+                trans = data.translation || v.en || '--';
+            }
+            
+            document.getElementById('translation').innerText = trans;
+            
+            // Display reference
+            document.getElementById('reference').innerText = 
+                `Surah ${data.surah} : Ayah ${v.ayah} | Confidence: ${Math.round(data.confidence * 100)}%`;
+            
+            // Clear debug message
+            document.getElementById('debug').innerText = '';
+        });
+
+        // Handle debug/recognized text
+        socket.on('recognize_verse', function(data) {
+            const recognized = data.text || data.recognized || '--';
+            document.getElementById('debug').innerText = 
+                'Recognized: ' + recognized.substring(0, 60);
+        });
+
+        // Handle next verses (for future use)
+        socket.on('next_verses_streaming', function(data) {
+            // Optional: can be used for preview
+        });
+
+        // Dark mode toggle
+        function toggleDark() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Load dark mode preference
+        window.addEventListener('load', () => {
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'd' || e.key === 'D') {
+                toggleDark();
+            }
+        });
+    </script>
+</body>
+</html>

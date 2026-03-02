@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="text-2xl font-bold text-center mb-8">
+    {{ khutbah.title }}
+</h2>
+
+{% for p in khutbah.paragraphs %}
+<div class="bg-white p-6 rounded-xl shadow mb-6">
+    <p class="text-xl text-right mb-4">
+        {{ p.ar }}
+    </p>
+    <p class="text-lg text-gray-700">
+        {{ p[lang] }}
+    </p>
+</div>
+{% endfor %}
+
+{% endblock %}
